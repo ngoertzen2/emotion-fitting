@@ -19,6 +19,17 @@ else:
     print("Not enough data. Exiting.")
     sys.exit(0)
 
+emotion_images = {
+    "happy": cv2.imread("happy.png"),
+    "neutral": cv2.imread("neutral.png"),
+    "sad": cv2.imread("sad.png"),
+}
+
+# Resize them to a consistent display size
+for key in emotion_images:
+    if emotion_images[key] is not None:
+        emotion_images[key] = cv2.resize(emotion_images[key], (300, 300))
+
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False,
@@ -60,7 +71,18 @@ while True:
             cv2.putText(frame, f"Emotion: {y_pred:.2f}", (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
-    cv2.imshow("Dots", frame)
+            if y_pred > 0.66:
+                emotion_img = emotion_images["happy"]
+            elif y_pred > 0.0:
+                emotion_img = emotion_images["neutral"]
+            else:
+                emotion_img = emotion_images["sad"]
+
+            # Display emotion image in another window
+            if emotion_img is not None:
+                cv2.imshow("Emotion Display", emotion_img)
+
+    cv2.imshow("Face", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

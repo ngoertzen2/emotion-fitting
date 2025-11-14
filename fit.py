@@ -1,6 +1,8 @@
 import cv2, os, sys, pickle, numpy as np, mediapipe as mp
 from sklearn.linear_model import LinearRegression
 
+F_HEIGHT = 350
+
 filename = input("Enter filename for data: ")
 
 if os.path.exists(filename):
@@ -20,9 +22,10 @@ else:
     sys.exit(0)
 
 emotion_images = {
-    "happy": cv2.imread("happy.png"),
-    "neutral": cv2.imread("neutral.png"),
-    "sad": cv2.imread("sad.png"),
+    "happy": cv2.imread("images/happy.png"),
+    "neutral": cv2.imread("images/neutral.png"),
+    "angry": cv2.imread("images/angry.png"),
+    "sad": cv2.imread("images/sad.png"),
 }
 
 # Resize them to a consistent display size
@@ -59,9 +62,14 @@ while True:
             # Draw box arround the face
             x_min, y_min = np.min(pts[:, 0]), np.min(pts[:, 1])
             x_max, y_max = np.max(pts[:, 0]), np.max(pts[:, 1])
-            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
             face_height = y_max - y_min
+            diff = abs(face_height - F_HEIGHT)
+            ratio = min(diff / 100, 1.0)
+            color = (0, int((1 - ratio) * 255), int(ratio * 255))
+
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 2)
+            
             
             #Calculate emotion level using linear regression(least squares)
             X_test = [np.linalg.norm(p - pts[152]) for p in pts]
@@ -75,8 +83,10 @@ while True:
                 emotion_img = emotion_images["happy"]
             elif y_pred > 0.0:
                 emotion_img = emotion_images["neutral"]
-            else:
+            elif y_pred > -0.4:
                 emotion_img = emotion_images["sad"]
+            else:
+                emotion_img = emotion_images["angry"]
 
             # Display emotion image in another window
             if emotion_img is not None:

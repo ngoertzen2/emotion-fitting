@@ -1,5 +1,7 @@
 import cv2, os, pickle, numpy as np, mediapipe as mp
 
+F_HEIGHT = 350
+
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False,
@@ -34,9 +36,15 @@ while True:
             # Draw box arround the face
             x_min, y_min = np.min(pts[:, 0]), np.min(pts[:, 1])
             x_max, y_max = np.max(pts[:, 0]), np.max(pts[:, 1])
-            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
-
+            
             face_height = y_max - y_min
+            diff = abs(face_height - F_HEIGHT)
+            ratio = min(diff / 100, 1.0)
+            color = (0, int((1 - ratio) * 255), int(ratio * 255))
+
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 2)
+
+            
             
 
     cv2.imshow("Dots", frame)

@@ -1,7 +1,4 @@
 import cv2, os, sys, pickle, numpy as np, mediapipe as mp
-from sklearn.linear_model import LinearRegression
-
-F_HEIGHT = 350
 
 filename = input("Enter filename for data: ")
 
@@ -15,23 +12,54 @@ else:
     print("File not found. Exiting.")
     sys.exit(0)
 if len(values) >= 2 :
-    model = LinearRegression()
-    model.fit(points, values)
+   # Convert to NumPy arrays
+    # shape (n_samples, n_features)
+    X = np.array(points, dtype=float)   
+    # shape (n_samples,)
+    y = np.array(values, dtype=float)   
+
+    n, d = X.shape
+
+    # Build design matrix X (with bias column),
+    # X is n x (p+1): first column all 1's, then features x_{ij}
+    X_design = np.hstack([np.ones((n, 1)), X])
+    d2 = d + 1  # = p+1
+
+    # Compute X^T X  
+    XtX = np.zeros((d2, d2))
+    # row index
+    for i in range(d2):  
+        # column index          
+        for j in range(d2):        
+            total = 0.0
+            # loop over samples
+            for k in range(n):     
+                total += X_design[k][i] * X_design[k][j]
+            XtX[i][j] = total
+
+    # Compute X^T y using nested loops
+    Xty = np.zeros(d2)
+    for i in range(d2):
+        total = 0.0
+        for k in range(n):
+            total += X_design[k][i] * y[k]
+        Xty[i] = total
+
+    try:
+    # Ideal theoretical case: (X^T X) θ = X^T y
+        theta = np.linalg.solve(XtX, Xty)
+    except np.linalg.LinAlgError:
+    # If X^T X is singular, fall back to Moore–Penrose pseudoinverse
+        theta = np.linalg.pinv(X_design) @ y
+
+    # b0 (intercept)
+    bias = theta[0]    
+
+    # b1..bp (slopes)  
+    weights = theta[1:]  
 else: 
     print("Not enough data. Exiting.")
     sys.exit(0)
-
-emotion_images = {
-    "happy": cv2.imread("images/happy.png"),
-    "neutral": cv2.imread("images/neutral.png"),
-    "angry": cv2.imread("images/angry.png"),
-    "sad": cv2.imread("images/sad.png"),
-}
-
-# Resize them to a consistent display size
-for key in emotion_images:
-    if emotion_images[key] is not None:
-        emotion_images[key] = cv2.resize(emotion_images[key], (300, 300))
 
 # Initialize MediaPipe Face Mesh
 mp_face_mesh = mp.solutions.face_mesh
@@ -62,37 +90,23 @@ while True:
             # Draw box arround the face
             x_min, y_min = np.min(pts[:, 0]), np.min(pts[:, 1])
             x_max, y_max = np.max(pts[:, 0]), np.max(pts[:, 1])
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
             face_height = y_max - y_min
-            diff = abs(face_height - F_HEIGHT)
-            ratio = min(diff / 100, 1.0)
-            color = (0, int((1 - ratio) * 255), int(ratio * 255))
-
-            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 2)
-            
             
             #Calculate emotion level using linear regression(least squares)
-            X_test = [np.linalg.norm(p - pts[152]) for p in pts]
+            X_test = [np.linalg.norm(p - pts[152]) for p in pts]  # feature vector
 
-            y_pred = model.predict([X_test])[0]
+            # y_pred = bias + sum_j w_j * x_j   (explicit math version)
+            y_pred = bias
+            for w_i, x_i in zip(weights, X_test):
+                y_pred += w_i * x_i
+            y_pred = float(y_pred)
 
             cv2.putText(frame, f"Emotion: {y_pred:.2f}", (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
-            if y_pred > 0.66:
-                emotion_img = emotion_images["happy"]
-            elif y_pred > 0.0:
-                emotion_img = emotion_images["neutral"]
-            elif y_pred > -0.4:
-                emotion_img = emotion_images["sad"]
-            else:
-                emotion_img = emotion_images["angry"]
-
-            # Display emotion image in another window
-            if emotion_img is not None:
-                cv2.imshow("Emotion Display", emotion_img)
-
-    cv2.imshow("Face", frame)
+    cv2.imshow("Dots", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

@@ -48,24 +48,6 @@ while True:
             color = (random.randint(1, 255),random.randint(1, 255),random.randint(1, 255))
             # Convert all landmarks to pixel coordinates
             pts = np.array([[int(lm.x * w), int(lm.y * h)] for lm in face_landmarks.landmark])
-
-            if trained == 0:
-                emName.append(input("Name: "))
-                mouth_open = np.linalg.norm(pts[13] - pts[14])
-                smile_width = np.linalg.norm(pts[61] - pts[291])
-                eyebrow_raise = np.linalg.norm(pts[70] - pts[105])
-                X.append([mouth_open, smile_width, eyebrow_raise])
-                trained = 1
-            elif trained == 1:
-                emName.append(input("Name2: "))
-                mouth_open = np.linalg.norm(pts[13] - pts[14])
-                smile_width = np.linalg.norm(pts[61] - pts[291])
-                eyebrow_raise = np.linalg.norm(pts[70] - pts[105])
-                X.append([mouth_open, smile_width, eyebrow_raise])
-                trained = 2
-
-
-
             
 
             # Draw small circles at all detected landmarks
@@ -90,13 +72,11 @@ while True:
                         cv2.line(frame, (int(x[i]), int(poly_y[i])),
                                  (int(x[i + 1]), int(poly_y[i + 1])), (255, 0, 0), 2)
                 case 2:
-                    if t:
-                        mouth_open = np.linalg.norm(pts[13] - pts[14])
-                        smile_width = np.linalg.norm(pts[61] - pts[291])
-                        eyebrow_raise = np.linalg.norm(pts[70] - pts[105])
-                        X_test = [mouth_open, smile_width, eyebrow_raise]
-                        y_pred = model.predict([X_test])[0]
-                        print(y_pred)
+                    for i, (px, py) in enumerate(pts):
+                        if ( i == 1 or i == 10 or i == 152):
+                            cv2.circle(frame, (px, py), 2, (0, 0, 255), -1)
+                            cv2.putText(frame, str(i), (px + 3, py - 3),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
 
                 case _:
                     for i in face_outline:
@@ -109,14 +89,7 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-    if cv2.waitKey(1) & 0xFF == ord('t'):
-        if len(X) >= 2:
-            print(X)
-            print(emName)
-            model = LinearRegression()
-            model.fit(X, emName)
-            print("Trained")
-            t = True
+
 
 cap.release()
 cv2.destroyAllWindows()

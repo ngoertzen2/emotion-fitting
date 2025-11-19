@@ -132,25 +132,16 @@ while True:
             #Draw bar
             cv2.rectangle(frame, (x1, y1), (x2, y2), (blue, green, red), -1)
 
-            nose3d = np.array([face_landmarks.landmark[1].x,
-                            face_landmarks.landmark[1].y,
-                            face_landmarks.landmark[1].z])
-            chin3d = np.array([face_landmarks.landmark[152].x,
-                            face_landmarks.landmark[152].y,
-                            face_landmarks.landmark[152].z])
-            forehead3d = np.array([face_landmarks.landmark[10].x,
-                                face_landmarks.landmark[10].y,
-                                face_landmarks.landmark[10].z])
+            nose3d = np.array([face_landmarks.landmark[1].x, face_landmarks.landmark[1].y, face_landmarks.landmark[1].z])
+            chin3d = np.array([face_landmarks.landmark[152].x, face_landmarks.landmark[152].y, face_landmarks.landmark[152].z])
+            forehead3d = np.array([face_landmarks.landmark[10].x, face_landmarks.landmark[10].y, face_landmarks.landmark[10].z])
 
-            # Vector from chin to forehead (face vertical axis)
+            # Vector from chin to forehead
             vector = forehead3d - chin3d
-
-            # Normalize vector
             vector /= np.linalg.norm(vector)
 
-            # Pitch angle: rotation around X-axis (forward/back tilt)
             pitch = np.degrees(np.arcsin(-vector[2]))
-            
+
             cv2.putText(frame, f"Pitch: {pitch:.1f}", (10, 65),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
             

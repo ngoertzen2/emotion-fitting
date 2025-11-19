@@ -1,5 +1,7 @@
 import cv2, os, sys, pickle, numpy as np, mediapipe as mp
 
+F_HEIGHT = 350
+
 filename = input("Enter filename for data: ")
 
 if os.path.exists(filename):
@@ -12,7 +14,7 @@ else:
     print("File not found. Exiting.")
     sys.exit(0)
 if len(values) >= 2 :
-   # Convert to NumPy arrays
+    # Convert to NumPy arrays
     # shape (n_samples, n_features)
     X = np.array(points, dtype=float)   
     # shape (n_samples,)
@@ -81,6 +83,10 @@ while True:
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = face_mesh.process(rgb)
 
+    bar_width = 40
+    x1 = w - 10  
+    x2 = w - (10 + bar_width)
+    mid_y = int(h - (1 / 3) * h)
 
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
@@ -90,9 +96,15 @@ while True:
             # Draw box arround the face
             x_min, y_min = np.min(pts[:, 0]), np.min(pts[:, 1])
             x_max, y_max = np.max(pts[:, 0]), np.max(pts[:, 1])
-            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
 
             face_height = y_max - y_min
+
+            diff = abs(face_height - F_HEIGHT)
+            ratio = min(diff / 100, 1.0)
+
+            color = (0, int((1 - ratio) * 255), int(ratio * 255))
+
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 2)
             
             #Calculate emotion level using linear regression(least squares)
             X_test = [np.linalg.norm(p - pts[152]) for p in pts]  # feature vector
@@ -103,8 +115,30 @@ while True:
                 y_pred += w_i * x_i
             y_pred = float(y_pred)
 
+            #Display calculated value as bar on the right side
+            y_clamped = max(-1, min(2, y_pred))
+
+            norm = (y_clamped + 1) / 3
+
+            bar_height = int(norm * h)   
+            y1 = h - bar_height # top of bar
+            y2 = h # bottom of bar
+
+            #Color bar based on value
+            red = int((1 - norm) * 255)
+            green = int(norm * 255)
+            blue  = 0
+
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (blue, green, red), -1)
+            
             cv2.putText(frame, f"Emotion: {y_pred:.2f}", (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+    #Outline for emotion value bar
+    cv2.line(frame, (x1, mid_y), (x2, mid_y), (255, 255, 255), 1)
+    cv2.putText(frame, "0", (x1 - (bar_width + 26), mid_y + 8),
+    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.rectangle(frame, (x1, 0), (x2, h), (255, 255, 255), 2)
 
     cv2.imshow("Dots", frame)
 

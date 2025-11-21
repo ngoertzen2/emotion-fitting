@@ -97,7 +97,7 @@ while True:
         points.append(list)
         values.append(input("Enter emotion value between 0 (Neutral) and 1 (Happy): "))
 
-        print("Captured. " + str(len(values)) + " points captured")
+        print("Captured. " + str(len(values)) + " samples captured")
 
 cap.release()
 cv2.destroyAllWindows()

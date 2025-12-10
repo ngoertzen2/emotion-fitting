@@ -14,27 +14,20 @@ else:
     print("File not found. Exiting.")
     sys.exit(0)
 if len(values) >= 2 :
-    # Convert to NumPy arrays
-    # shape (n_samples, n_features)
     X = np.array(points, dtype=float)   
-    # shape (n_samples,)
     y = np.array(values, dtype=float)   
 
     n, d = X.shape
 
-    # Build design matrix X (with bias column),
-    # X is n x (p+1): first column all 1's, then features x_{ij}
     X_design = np.hstack([np.ones((n, 1)), X])
-    d2 = d + 1  # = p+1
+    d2 = d + 1  
 
-    # Compute X^T X  
     XtX = np.zeros((d2, d2))
     # row index
     for i in range(d2):  
         # column index          
         for j in range(d2):        
             total = 0.0
-            # loop over samples
             for k in range(n):     
                 total += X_design[k][i] * X_design[k][j]
             XtX[i][j] = total
@@ -48,17 +41,14 @@ if len(values) >= 2 :
         Xty[i] = total
 
     try:
-    # Ideal theoretical case: (X^T X) θ = X^T y
         theta = np.linalg.solve(XtX, Xty)
     except np.linalg.LinAlgError:
-    # If X^T X is singular, fall back to Moore–Penrose pseudoinverse
+    # If X^T X is singular
         theta = np.linalg.pinv(X_design) @ y
 
-    # b0 (intercept)
     bias = theta[0]    
-
-    # b1..bp (slopes)  
-    weights = theta[1:]  
+    weights = theta[1:]
+      
 else: 
     print("Not enough data. Exiting.")
     sys.exit(0)
